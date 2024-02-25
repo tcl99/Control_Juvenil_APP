@@ -34,8 +34,9 @@ import java.util.List;
 
 public class HomeActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
-    private final float THRESHOLD = 4f; // Umbral de detección de caídas
-    private boolean fallen = false; // Indica si se ha detectado una caída previamente, sirve para no iniciar mas de 1 activity de caida a la vez
+    public static final String EXTRA_MSG = "com.example.caida.MESSAGE";
+    private boolean flag;
+    private final float THRESHOLD = 3f; // Umbral de detección de caídas
 
     private Vibrator vibrator;
     private LocationManager locationManager;
@@ -58,6 +59,9 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        //Variables
+        fallsDetail = new ArrayList<Caida>();
+        flag = false;
 
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
@@ -82,9 +86,7 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
 
         fallView = (ListView) findViewById(R.id.falls);
         falls = new ArrayList<String>();
-        falls.add("Camino Lebaniego");
-
-        falls.sort(String::compareToIgnoreCase);
+        //falls.sort(String::compareToIgnoreCase);
 
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, falls);
         fallView.setAdapter(adapter);
@@ -93,23 +95,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent;
-                String opcion = falls.get(i);
-
-                Toast.makeText(HomeActivity.this, "Test", Toast.LENGTH_SHORT).show();
-                /*intent = new Intent(RoutesActivity.this, MapActivity.class);
-                String msg = routes.get(i).toString();
-                intent.putExtra(EXTRA_MSG, msg);
-                startActivity(intent);*/
-
+                intent = new Intent(HomeActivity.this, CaidaActivity.class);
+                Caida c = fallsDetail.get(i);
+                intent.putExtra(EXTRA_MSG, c);
+                startActivity(intent);
             }
         });
-
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 123);
-
-        }
-
     }
 
     // METODOS SENSORES
@@ -125,22 +116,27 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
             // Calcular la aceleración total
             float acceleration = (float) Math.sqrt(x * x + y * y + z * z);
 
-            if (acceleration < THRESHOLD) {
+            if (acceleration < THRESHOLD && !flag) {
+                flag = true;
                 fallCounter++;
-                //Si se ha superado el umbral y no se ha detectado una caída previamente
 
                 //Toast
-                Toast.makeText(this, "CAIDA DETECTADA", Toast.LENGTH_SHORT).show();
+               // Toast.makeText(this, "CAIDA DETECTADA", Toast.LENGTH_SHORT).show();
+
                 //El telefono vibra
                 vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.EFFECT_TICK));
                 //Se comprueban los permisos de la localización
-                 if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                     ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 123);
-                }
-
                 //Se recoge la localización
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                }
                 lastFallLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
                 //Se guarda en la lista la caida y se actualiza
                 LocalDateTime fallTime = LocalDateTime.now();
                 String fallID = "Caida " + fallCounter + ": " + fallTime.format(timeFormat);
@@ -148,9 +144,13 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
                 adapter.notifyDataSetChanged();
                 fallView.smoothScrollToPosition(falls.size() - 1);
 
-                fallsDetail.add(new Caida(fallID, lastFallLocation, fallTime ));
+                fallsDetail.add(new Caida(fallID, lastFallLocation.getLatitude(), lastFallLocation.getLongitude(), fallTime));
+
+                flag = false;
+
+
             }
-        } //else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {}
+        }
     }
 
     @Override

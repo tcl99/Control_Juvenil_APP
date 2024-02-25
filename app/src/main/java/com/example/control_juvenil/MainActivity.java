@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final String EXTRA_MSG = "com.example.gps.MESSAGE";
     private TextView user;
     private TextView pass;
     private boolean hasUserChanged;
@@ -59,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, HomeActivity.class);
             EditText editText = (EditText) findViewById(R.id.editUsername);
             String msg = editText.getText().toString();
-            intent.putExtra(EXTRA_MSG, msg);
+            intent.putExtra("LOGIN", msg);
             startActivity(intent);
         }
     }
